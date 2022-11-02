@@ -75,6 +75,7 @@ const B = spawn({
     },
     bar({ z }) {
         console.log("B.bar got", z, this.w);
+        A.send("foo", { x: z, y: this.w })
     }
 })
 
