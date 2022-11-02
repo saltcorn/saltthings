@@ -1,14 +1,26 @@
 let nextPid = 0
-
 const mailboxes = {}
 
-const send = ({ pid }, msqName, arg) => {
+
+const myNode = { nodeID: null, nodeLocators: {} }
+
+const createNode = (options = {}) => {
+    myNode.nodeID = Math.floor(Math.random() * 16777215).toString(16);
+
+    return ({ pid }, ...msg) => send({ pid, node: myNode }, ...msg)
+}
+
+const send = ({ pid, node }, ...msg) => {
+    if (node.nodeID !== myNode.nodeID) {
+
+        return
+    }
     if (mailboxes[pid].resolver) {
         const r = mailboxes[pid].resolver
         mailboxes[pid].resolver = null
-        r([msqName, arg]);
+        r(msg);
     } else
-        mailboxes[pid].queue.push([msqName, arg]);
+        mailboxes[pid].queue.push(msg);
 }
 
 const spawn = (f, options = {}) => {
@@ -27,7 +39,8 @@ const spawn = (f, options = {}) => {
         }
 
     }
-    const that = { receive, pid }
+    const node = myNode
+    const that = { receive, pid, node }
     const loop = async (dispatch) => {
         while (true) {
             const [nm, arg] = await receive()
@@ -47,9 +60,10 @@ const spawn = (f, options = {}) => {
             f.__init.call(that)
         loop(f)
     }
-    return { pid, send: (msg, arg) => send({ pid }, msg, arg) }
+    return { pid, node, send: (msg, arg) => send({ pid, node }, msg, arg) }
 }
 
+createNode()
 
 const A = spawn(async function () {
     console.log("A", this.pid);
