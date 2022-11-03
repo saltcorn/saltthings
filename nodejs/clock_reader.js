@@ -4,7 +4,7 @@ const { createNode, spawn, send } = require("./index")
 createNode({ createHttpServer: { port: 3145, host: "localhost" } })
 
 const clockPID = {
-    pid: 0,
+    pid: { processName: "clock" },
     node: {
         nodeLocators: { http: "http://localhost:3135" }
     }

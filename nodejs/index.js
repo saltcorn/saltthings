@@ -1,9 +1,10 @@
 let nextPid = 0
 const mailboxes = {}
 const http = require("http");
+const { pid } = require("process");
 
 //testing: curl -X POST http://localhost:3125 -H 'Content-Type: application/json'  -d '[0, "hello", "world from CURL"]'
-const myNode = { nodeID: null, nodeLocators: {} }
+const myNode = { nodeID: null, nodeLocators: {}, registeredProcesses: {} }
 
 const createNode = (options = {}) => {
     myNode.nodeID = Math.floor(Math.random() * 16777215).toString(16);
@@ -16,8 +17,12 @@ const createNode = (options = {}) => {
             }).on('end', () => {
                 body = Buffer.concat(body).toString();
                 //console.log(body);
-                [pid, ...msg] = JSON.parse(body)
-                send({ pid, myNode }, ...msg)
+                [proc, ...msg] = JSON.parse(body)
+                if (proc.processName) {
+                    const pid = myNode.registeredProcesses[proc.processName]
+                    send({ pid, myNode }, ...msg)
+                }
+                else send({ pid: proc, myNode }, ...msg)
                 res.writeHead(200);
                 res.end();
             });
@@ -95,6 +100,8 @@ const spawn = (f, options = {}) => {
     if (f.call)
         f.call(that)
     else {
+        if (f.processName)
+            myNode.registeredProcesses[f.processName] = pid
         if (f.__init)
             f.__init.call(that)
         loop(f)
@@ -102,4 +109,6 @@ const spawn = (f, options = {}) => {
     return { pid, node, send: (msg, arg) => send({ pid, node }, msg, arg) }
 }
 
-module.exports = { spawn, createNode, send }
+const registerProcess = (name, { pid }) => myNode.registeredProcesses[name] = pid
+
+module.exports = { spawn, createNode, send, registerProcess }
