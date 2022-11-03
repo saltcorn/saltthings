@@ -34,10 +34,25 @@ const createNode = (options = {}) => {
     return ({ pid }, ...msg) => send({ pid, node: myNode }, ...msg)
 }
 
+const sendHTTP = (httpLoc, pid, ...msg) => {
+    const url = new URL(httpLoc)
+    var options = {
+        host: url.hostname,
+        path: url.pathname,
+        port: url.port,
+        method: 'POST'
+    };
+
+    var req = http.request(options);
+    req.write(JSON.stringify([pid, ...msq]));
+    req.end();
+}
+
 const send = ({ pid, node }, ...msg) => {
     if (node && node.nodeID !== myNode.nodeID) {
-
-        return
+        if (nodeLocators.http)
+            sendHTTP(nodeLocators.http, pid, ...msg)
+        return;
     }
     if (mailboxes[pid].resolver) {
         const r = mailboxes[pid].resolver
