@@ -1,14 +1,70 @@
 let nextPid = 0
-
 const mailboxes = {}
+const http = require("http");
+const { pid } = require("process");
 
-const send = ({ pid }, msqName, arg) => {
+//testing: curl -X POST http://localhost:3125 -H 'Content-Type: application/json'  -d '[0, "hello", "world from CURL"]'
+const myNode = { nodeID: null, nodeLocators: {}, registeredProcesses: {} }
+
+const createNode = (options = {}) => {
+    myNode.nodeID = Math.floor(Math.random() * 16777215).toString(16);
+
+    if (options.createHttpServer) {
+        const requestListener = function (req, res) {
+            let body = [];
+            req.on('data', (chunk) => {
+                body.push(chunk);
+            }).on('end', () => {
+                body = Buffer.concat(body).toString();
+                //console.log(body);
+                [proc, ...msg] = JSON.parse(body)
+                if (proc.processName) {
+                    const pid = myNode.registeredProcesses[proc.processName]
+                    send({ pid, myNode }, ...msg)
+                }
+                else send({ pid: proc, myNode }, ...msg)
+                res.writeHead(200);
+                res.end();
+            });
+
+        };
+        const host = options.createHttpServer.host;
+        const port = options.createHttpServer.port;
+        const server = http.createServer(requestListener);
+        server.listen(port, host, () => {
+            console.log(`Server is running on http://${host}:${port}`);
+        });
+        myNode.nodeLocators.http = `http://${host}:${port}`
+    }
+    return ({ pid }, ...msg) => send({ pid, node: myNode }, ...msg)
+}
+
+const sendHTTP = (httpLoc, pid, ...msg) => {
+    const url = new URL(httpLoc)
+    var options = {
+        host: url.hostname,
+        path: url.pathname,
+        port: url.port,
+        method: 'POST'
+    };
+
+    var req = http.request(options);
+    req.write(JSON.stringify([pid, ...msg]));
+    req.end();
+}
+
+const send = ({ pid, node }, ...msg) => {
+    if (node && node.nodeID !== myNode.nodeID) {
+        if (node.nodeLocators.http)
+            sendHTTP(node.nodeLocators.http, pid, ...msg)
+        return;
+    }
     if (mailboxes[pid].resolver) {
         const r = mailboxes[pid].resolver
         mailboxes[pid].resolver = null
-        r([msqName, arg]);
+        r(msg);
     } else
-        mailboxes[pid].queue.push([msqName, arg]);
+        mailboxes[pid].queue.push(msg);
 }
 
 const spawn = (f, options = {}) => {
@@ -27,55 +83,32 @@ const spawn = (f, options = {}) => {
         }
 
     }
-    const that = { receive, pid }
+    const node = myNode
+    const that = { receive, pid, node }
     const loop = async (dispatch) => {
         while (true) {
-            const [nm, arg] = await receive()
+            const [nm, ...args] = await receive()
             const f = dispatch[nm]
             if (f) {
-                await f.call(that, arg)
+                await f.call(that, ...args)
             } else
                 throw new Error("Unknown message in loop: " + nm)
         }
     }
     that.loop = loop
-    console.log({ that });
+    //console.log({ that });
     if (f.call)
         f.call(that)
     else {
+        if (f.processName)
+            myNode.registeredProcesses[f.processName] = pid
         if (f.__init)
             f.__init.call(that)
         loop(f)
     }
-    return { pid, send: (msg, arg) => send({ pid }, msg, arg) }
+    return { pid, node, send: (msg, arg) => send({ pid, node }, msg, arg) }
 }
 
+const registerProcess = (name, { pid }) => myNode.registeredProcesses[name] = pid
 
-const A = spawn(async function () {
-    console.log("A", this.pid);
-    const m = await this.receive()
-    console.log("A got", m);
-    await this.loop({
-        hello() {
-            console.log("A got hello msg in loop");
-        },
-        foo({ x, y }) {
-            console.log("A got foo", x, y);
-        }
-
-    })
-})
-send(A, "hello")
-send(A, "hello")
-A.send("foo", { x: 4, y: 2 })
-
-const B = spawn({
-    __init() {
-        this.w = 9
-    },
-    bar({ z }) {
-        console.log("B.bar got", z, this.w);
-    }
-})
-
-send(B, "bar", { z: 7 })
+module.exports = { spawn, createNode, send, registerProcess }
