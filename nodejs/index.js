@@ -15,7 +15,7 @@ const createNode = (options = {}) => {
                 body.push(chunk);
             }).on('end', () => {
                 body = Buffer.concat(body).toString();
-                console.log(body);
+                //console.log(body);
                 [pid, ...msg] = JSON.parse(body)
                 send({ pid, myNode }, ...msg)
                 res.writeHead(200);
@@ -44,14 +44,14 @@ const sendHTTP = (httpLoc, pid, ...msg) => {
     };
 
     var req = http.request(options);
-    req.write(JSON.stringify([pid, ...msq]));
+    req.write(JSON.stringify([pid, ...msg]));
     req.end();
 }
 
 const send = ({ pid, node }, ...msg) => {
     if (node && node.nodeID !== myNode.nodeID) {
-        if (nodeLocators.http)
-            sendHTTP(nodeLocators.http, pid, ...msg)
+        if (node.nodeLocators.http)
+            sendHTTP(node.nodeLocators.http, pid, ...msg)
         return;
     }
     if (mailboxes[pid].resolver) {
@@ -82,16 +82,16 @@ const spawn = (f, options = {}) => {
     const that = { receive, pid, node }
     const loop = async (dispatch) => {
         while (true) {
-            const [nm, arg] = await receive()
+            const [nm, ...args] = await receive()
             const f = dispatch[nm]
             if (f) {
-                await f.call(that, arg)
+                await f.call(that, ...args)
             } else
                 throw new Error("Unknown message in loop: " + nm)
         }
     }
     that.loop = loop
-    console.log({ that });
+    //console.log({ that });
     if (f.call)
         f.call(that)
     else {
