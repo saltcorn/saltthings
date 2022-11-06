@@ -4,7 +4,7 @@ import uuid
 mailboxes = {}
 
 
-async def spawn(f):
+def spawn(f):
     pid = str(uuid.uuid4())
     q = asyncio.Queue()
     mailboxes[pid] = q
@@ -20,14 +20,21 @@ def send(pid, msg):
     mailboxes[pid].put_nowait(msg)
 
 
+async def loop(pid, f):
+    pass
+
+
 async def Af(receive):
+    msg = await receive()
+    print("A got msg", msg)
     msg = await receive()
     print("A got msg", msg)
 
 
 async def go():
-    A = await spawn(Af)
+    A = spawn(Af)
     send(A, "hello")
+    send(A, "world")
 
 loop = asyncio.get_event_loop()
 
