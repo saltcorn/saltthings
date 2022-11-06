@@ -1,12 +1,14 @@
 import asyncio
 import uuid
+import inspect
 
 mailboxes = {}
 
 """
 todo:
-- msg arguments
-- spawn class
+
+
+
 """
 
 
@@ -18,7 +20,19 @@ def spawn(f):
     async def receive():
         value = await q.get()
         return value
-    asyncio.create_task(f(receive))
+
+    if inspect.iscoroutinefunction(f):
+        asyncio.create_task(f(receive))
+    if inspect.isclass(f):
+        x = f()
+
+        async def runner():
+            (msg, args) = await receive()
+            op = getattr(x, msg, None)
+            if callable(op):
+                op(*args)
+        asyncio.create_task(runner())
+
     return pid
 
 
@@ -32,10 +46,18 @@ async def Af(receive):
         print("A got msg", msg, args)
 
 
+class Foo:
+    def hello(self, x):
+        print("Foo.hello got", x)
+
+
 async def go():
     A = spawn(Af)
+    B = spawn(Foo)
     send(A, "hello", 5)
     send(A, "world")
+    send(B, "hello", 4)
+
 
 loop = asyncio.get_event_loop()
 
