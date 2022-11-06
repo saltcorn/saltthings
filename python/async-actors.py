@@ -6,7 +6,8 @@ mailboxes = {}
 
 """
 todo:
-
+-http client and server
+-register process name
 
 
 """
@@ -27,10 +28,11 @@ def spawn(f):
         x = f()
 
         async def runner():
-            (msg, args) = await receive()
-            op = getattr(x, msg, None)
-            if callable(op):
-                op(*args)
+            while True:
+                (msg, args) = await receive()
+                op = getattr(x, msg, None)
+                if callable(op):
+                    op(*args)
         asyncio.create_task(runner())
 
     return pid
@@ -57,6 +59,7 @@ async def go():
     send(A, "hello", 5)
     send(A, "world")
     send(B, "hello", 4)
+    send(B, "hello", 8)
 
 
 loop = asyncio.get_event_loop()
