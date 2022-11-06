@@ -1,4 +1,4 @@
-const { createNode, spawn, send } = require("./index")
+const { createNode, spawn, send, loop } = require("./index")
 
 
 createNode({ createHttpServer: { port: 3125, host: "localhost" } })
@@ -7,7 +7,10 @@ const A = spawn(async function () {
     console.log("A", this.pid);
     const m = await this.receive()
     console.log("A got", m);
-    await this.loop({
+    console.log("A this", this);
+
+    // await loopF(this, {})
+    await loop(this, {
         hello(s) {
             console.log("A got hello msg in loop with: " + s);
         },

@@ -1,7 +1,7 @@
 let nextPid = 0
 const mailboxes = {}
 const http = require("http");
-const { pid } = require("process");
+
 
 //testing: curl -X POST http://localhost:3125 -H 'Content-Type: application/json'  -d '[0, "hello", "world from CURL"]'
 const myNode = { nodeID: null, nodeLocators: {}, registeredProcesses: {} }
@@ -84,18 +84,8 @@ const spawn = (f, options = {}) => {
 
     }
     const node = myNode
-    const that = { receive, pid, node }
-    const loop = async (dispatch) => {
-        while (true) {
-            const [nm, ...args] = await receive()
-            const f = dispatch[nm]
-            if (f) {
-                await f.call(that, ...args)
-            } else
-                throw new Error("Unknown message in loop: " + nm)
-        }
-    }
-    that.loop = loop
+    const that = { receive, pid, node, mbox: { pid, node } }
+
     //console.log({ that });
     if (f.call)
         f.call(that)
@@ -104,11 +94,22 @@ const spawn = (f, options = {}) => {
             myNode.registeredProcesses[f.processName] = pid
         if (f.__init)
             f.__init.call(that)
-        loop(f)
+        loop(that, f)
     }
     return { pid, node, send: (msg, arg) => send({ pid, node }, msg, arg) }
 }
 
 const registerProcess = (name, { pid }) => myNode.registeredProcesses[name] = pid
 
-module.exports = { spawn, createNode, send, registerProcess }
+async function loop(that, dispatch) {
+    while (true) {
+        const [nm, ...args] = await that.receive()
+        const f = dispatch[nm]
+        if (f) {
+            await f.call(that, ...args)
+        } else
+            throw new Error("Unknown message in loop: " + nm)
+    }
+}
+
+module.exports = { spawn, createNode, send, registerProcess, loop }
