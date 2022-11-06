@@ -27,8 +27,7 @@ async def loop(pid, f):
 async def Af(receive):
     msg = await receive()
     print("A got msg", msg)
-    msg = await receive()
-    print("A got msg", msg)
+    await Af(receive)
 
 
 async def go():
