@@ -3,6 +3,12 @@ import uuid
 
 mailboxes = {}
 
+"""
+todo:
+- msg arguments
+- spawn class
+"""
+
 
 def spawn(f):
     pid = str(uuid.uuid4())
@@ -16,23 +22,19 @@ def spawn(f):
     return pid
 
 
-def send(pid, msg):
-    mailboxes[pid].put_nowait(msg)
-
-
-async def loop(pid, f):
-    pass
+def send(pid, msg, *args):
+    mailboxes[pid].put_nowait((msg, args))
 
 
 async def Af(receive):
-    msg = await receive()
-    print("A got msg", msg)
-    await Af(receive)
+    while True:
+        (msg, args) = await receive()
+        print("A got msg", msg, args)
 
 
 async def go():
     A = spawn(Af)
-    send(A, "hello")
+    send(A, "hello", 5)
     send(A, "world")
 
 loop = asyncio.get_event_loop()
