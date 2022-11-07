@@ -42,6 +42,12 @@ def send(pid, msg, *args):
     mailboxes[pid].put_nowait((msg, args))
 
 
+def run(f):
+    loop = asyncio.get_event_loop()
+    loop.create_task(f())
+    loop.run_forever()
+
+
 async def Af(receive):
     while True:
         (msg, args) = await receive()
@@ -62,8 +68,4 @@ async def go():
     send(B, "hello", 8)
 
 
-loop = asyncio.get_event_loop()
-
-
-loop.create_task(go())
-loop.run_forever()
+run(go)
