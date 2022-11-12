@@ -46,13 +46,14 @@ const sendHTTP = (httpLoc, pid, ...msg) => {
     port: url.port,
     method: "POST",
   };
-
+  console.log(options);
   var req = http.request(options);
   req.write(JSON.stringify([pid, ...msg]));
   req.end();
 };
 
 const send = ({ pid, node }, ...msg) => {
+  console.log({ pid, node, msg });
   if (node && node.nodeID !== myNode.nodeID) {
     if (node.nodeLocators.http) sendHTTP(node.nodeLocators.http, pid, ...msg);
     return;

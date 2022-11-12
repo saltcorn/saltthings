@@ -2,9 +2,13 @@ import asyncio
 import uuid
 import inspect
 import aiohttp
+from aiohttp import web
 
 mailboxes = {}
-myNode = {"nodeID": str(uuid.uuid4())}
+myNode = {
+    "nodeID": str(uuid.uuid4()),
+    "nodeLocators": {}
+}
 
 """
 todo:
@@ -13,6 +17,27 @@ todo:
 
 
 """
+
+
+async def createNode(loop, options={}):
+    global myNode
+    print("createNode", options )
+    if options.get("createHttpServer"):
+        print("createHttpServer", options.get("createHttpServer") )
+        host = options['createHttpServer']['host']
+        port = options['createHttpServer']['port']
+        myNode['nodeLocators']['http'] = f"http://{host}:{port}"
+        
+
+        async def handler(request):
+            j = await request.json()
+            print(j)
+            pass
+        app = web.Application(loop=loop)
+        app.add_routes([web.post('/', handler)])
+        srv = await loop.create_server(app.make_handler(), '0.0.0.0', port)
+        return srv
+        #web.run_app(app)
 
 
 def spawn(f):
@@ -37,34 +62,33 @@ def spawn(f):
                     op(*args)
         asyncio.create_task(runner())
 
-    return pid
+    return {"pid": pid, "node": myNode}
 
 
 async def send(proc, msg, *args):
-    print(type(proc))
     if type(proc) == str:
         mailboxes[proc].put_nowait((msg, args))
     if type(proc) == dict:
-        print("isDixt")
-        if proc.get("node", {}).get("nodeID","") == myNode["nodeID"]:
-            print("still local")
-
+        if proc.get("node", {}).get("nodeID", "") == myNode["nodeID"]:
             mailboxes[proc].put_nowait((msg, args))
             return
-        httpUrl =proc.get("node", {}).get("nodeLocators",{}).get("http",False)
+        httpUrl = proc.get("node", {}).get(
+            "nodeLocators", {}).get("http", False)
         if httpUrl:
-            print("go http!")
             async with aiohttp.ClientSession() as session:
-                await session.post(httpUrl, json=[proc, msg, *args]) 
+                await session.post(httpUrl, json=[proc, msg, *args])
 
             return
 
         print("unknown destination")
 
 
-def run(f):
+def run(f, createNodeOptions={}):
     loop = asyncio.get_event_loop()
-    loop.create_task(f())
+    async def g():
+        await createNode(loop, createNodeOptions)
+        await f()
+    loop.create_task(g())
     loop.run_forever()
 
 
@@ -77,19 +101,33 @@ async def Af(receive):
 class Foo:
     def hello(self, x):
         print("Foo.hello got", x)
+class TickTock:
+    def tock(self, tm):
+        print("tock got", tm)
 
 
 async def go():
-    A = spawn(Af)
-    B = spawn(Foo)
+    #A = spawn(Af)
+    #B = spawn(Foo)
+    tickTock = spawn(TickTock)
     #send(A, "hello", 5)
     #send(A, "world")
     #send(B, "hello", 4)
     #send(B, "hello", 8)
-    await send({"processName": "console", "node": {
-        "nodeID": "", 
-        "nodeLocators": {"http": "http://localhost:3155"}}}, 
-        "print", "foobar")
+    await asyncio.sleep(3)
+    await send(
+        {
+            "processName": "clock",
+            "node": {
+                "nodeID": "",
+                "nodeLocators": {"http": "http://localhost:3135"}}
+        },
+        "get_time",
+        tickTock,
+        "tock",
+        )
 
 
-run(go)
+run(go, {
+    "createHttpServer": {"port": 3001, "host": "localhost"}
+})
