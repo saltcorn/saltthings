@@ -21,18 +21,18 @@ todo:
 
 async def createNode(loop, options={}):
     global myNode
-    print("createNode", options )
+    
     if options.get("createHttpServer"):
-        print("createHttpServer", options.get("createHttpServer") )
         host = options['createHttpServer']['host']
         port = options['createHttpServer']['port']
         myNode['nodeLocators']['http'] = f"http://{host}:{port}"
         
 
         async def handler(request):
-            j = await request.json()
-            print(j)
-            pass
+            pid, msg, *args = await request.json()
+            #print(pid,msg,args)
+            await send(pid,msg,*args)
+            return web.Response(text="OK")
         app = web.Application(loop=loop)
         app.add_routes([web.post('/', handler)])
         srv = await loop.create_server(app.make_handler(), '0.0.0.0', port)
@@ -114,7 +114,6 @@ async def go():
     #send(A, "world")
     #send(B, "hello", 4)
     #send(B, "hello", 8)
-    await asyncio.sleep(3)
     await send(
         {
             "processName": "clock",
@@ -129,5 +128,5 @@ async def go():
 
 
 run(go, {
-    "createHttpServer": {"port": 3001, "host": "localhost"}
+    "createHttpServer": {"port": 3001, "host": "0.0.0.0"}
 })
