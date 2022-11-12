@@ -1,8 +1,10 @@
 import asyncio
 import uuid
 import inspect
+import aiohttp
 
 mailboxes = {}
+myNode = {"nodeID": str(uuid.uuid4())}
 
 """
 todo:
@@ -38,8 +40,26 @@ def spawn(f):
     return pid
 
 
-def send(pid, msg, *args):
-    mailboxes[pid].put_nowait((msg, args))
+async def send(proc, msg, *args):
+    print(type(proc))
+    if type(proc) == str:
+        mailboxes[proc].put_nowait((msg, args))
+    if type(proc) == dict:
+        print("isDixt")
+        if proc.get("node", {}).get("nodeID","") == myNode["nodeID"]:
+            print("still local")
+
+            mailboxes[proc].put_nowait((msg, args))
+            return
+        httpUrl =proc.get("node", {}).get("nodeLocators",{}).get("http",False)
+        if httpUrl:
+            print("go http!")
+            async with aiohttp.ClientSession() as session:
+                await session.post(httpUrl, json=[proc, msg, *args]) 
+
+            return
+
+        print("unknown destination")
 
 
 def run(f):
@@ -62,10 +82,14 @@ class Foo:
 async def go():
     A = spawn(Af)
     B = spawn(Foo)
-    send(A, "hello", 5)
-    send(A, "world")
-    send(B, "hello", 4)
-    send(B, "hello", 8)
+    #send(A, "hello", 5)
+    #send(A, "world")
+    #send(B, "hello", 4)
+    #send(B, "hello", 8)
+    await send({"processName": "console", "node": {
+        "nodeID": "", 
+        "nodeLocators": {"http": "http://localhost:3155"}}}, 
+        "print", "foobar")
 
 
 run(go)
