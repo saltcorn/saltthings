@@ -2,13 +2,17 @@
 
 ## on PCs
 
-homebrew micropython ships with an old version (2) of uasyncio even though the version of micropython is latest. Do not use brew.
+homebrew micropython ships with an old version (v2) of uasyncio even though the version of micropython is latest. Do not use brew.
 
 Install Ubuntu 22.10
 
 Install micropython from apt (not snap)
 
-Do this: https://forum.micropython.org/viewtopic.php?f=15&t=10146#p56429
+```
+$ sudo apt install micropython
+```
+
+Do this: https://forum.micropython.org/viewtopic.php?f=15&t=10146#p56429 i.e.
 
 ```
 $ git clone https://github.com/micropython/micropython.git
