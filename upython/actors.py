@@ -6,15 +6,17 @@ from primitives import Queue
 
 random.seed(time.ticks_ms())
 
-
 def randChar():
-  return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'[random.getrandbits(6)]
+    return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'[random.getrandbits(6)]
 
 def randStr(N=16):
 	return ''.join([randChar() for i in range(N)])
 
 mailboxes = {}
-myNode= {}
+myNode = {
+    "nodeID": randStr(),
+    "nodeLocators": {}
+}
 
 def spawn(f):
     pid =randStr()
@@ -40,6 +42,18 @@ def spawn(f):
 
     return {"pid": pid, "node": myNode}
 
+async def send(proc, msg, *args):
+    print("send", type(proc))
+
+    if type(proc) == str:
+        mailboxes[proc].put_nowait((msg, args))
+    if type(proc) == dict:
+        if proc.get("node", {}).get("nodeID", "") == myNode["nodeID"]:
+            print("delivering", msg, args)
+            print("to", mailboxes[proc['pid']])
+            mailboxes[proc['pid']].put_nowait((msg, args))
+            return
+
 def run(f, createNodeOptions={}):
     loop = uasyncio.get_event_loop()
     """async def g():
@@ -50,14 +64,18 @@ def run(f, createNodeOptions={}):
 
 async def Af(receive):
     while True:
+        print("Af waiting")
         (msg, args) = await receive()
         print("A got msg", msg, args)
 
 async def go():
     A = spawn(Af)
+    
     #B = spawn(Foo)
-    #send(A, "hello", 5)
-   
+    await send(A, "hello", 5)
+    #await uasyncio.sleep(3)
+
+    print("done")
 
 run(go, {
     "createHttpServer": {"port": 3001, "host": "0.0.0.0"}

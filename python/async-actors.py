@@ -70,7 +70,7 @@ async def send(proc, msg, *args):
         mailboxes[proc].put_nowait((msg, args))
     if type(proc) == dict:
         if proc.get("node", {}).get("nodeID", "") == myNode["nodeID"]:
-            mailboxes[proc].put_nowait((msg, args))
+            mailboxes[proc['pid']].put_nowait((msg, args))
             return
         httpUrl = proc.get("node", {}).get(
             "nodeLocators", {}).get("http", False)
