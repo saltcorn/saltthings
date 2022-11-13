@@ -2,7 +2,9 @@ import uasyncio
 import random
 import time
 from primitives import Queue
-#import inspect
+import urequests
+import ujson
+
 random.seed(time.ticks_ms())
 
 def randChar():
@@ -50,13 +52,23 @@ def spawn(f):
 
     return {"pid": pid, "node": myNode}
 
-async def send(proc, msg, *args):
+def send(proc, msg, *args):
     if type(proc) == str:
         mailboxes[proc].put_nowait((msg, args))
     if type(proc) == dict:
         if proc.get("node", {}).get("nodeID", "") == myNode["nodeID"]:
             mailboxes[proc['pid']].put_nowait((msg, args))
             return
+        httpUrl = proc.get("node", {}).get(
+            "nodeLocators", {}).get("http", False)
+        if httpUrl:
+            msgList = [proc, msg]
+            msgList.append(args)
+            post_data = ujson.dumps(msgList)
+            urequests.post(httpUrl, headers = {'content-type': 'application/json'}, data = post_data)            
+            return
+
+        print("unknown destination")
 
 def run(f, createNodeOptions={}):
     loop = uasyncio.get_event_loop()
@@ -83,8 +95,16 @@ async def go():
     A = spawn(Af)
     
     B = spawn(Foo)
-    await send(A, "hello", 5)
-    await send(B, "hello", 4)
+    send(A, "hello", 5)
+    send(B, "hello", 4)
+    send({
+            "processName": "console",
+            "node": {
+                "nodeID": "",
+                "nodeLocators": {"http": "http://localhost:3155"}}
+        },
+        "print",
+        "tock")
 
     #await uasyncio.sleep(3)
 
