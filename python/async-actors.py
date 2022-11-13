@@ -110,10 +110,10 @@ async def go():
     #A = spawn(Af)
     #B = spawn(Foo)
     tickTock = spawn(TickTock)
-    #send(A, "hello", 5)
-    #send(A, "world")
-    #send(B, "hello", 4)
-    #send(B, "hello", 8)
+    #await send(A, "hello", 5)
+    #await send(A, "world")
+    #await send(B, "hello", 4)
+    #await send(B, "hello", 8)
     await send(
         {
             "processName": "clock",

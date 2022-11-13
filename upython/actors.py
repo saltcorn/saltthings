@@ -3,7 +3,6 @@ import random
 import time
 from primitives import Queue
 #import inspect
-
 random.seed(time.ticks_ms())
 
 def randChar():
@@ -11,6 +10,16 @@ def randChar():
 
 def randStr(N=16):
 	return ''.join([randChar() for i in range(N)])
+
+async def a_coroutine():
+    pass
+
+class aClass:
+    pass
+
+
+type_coroutine = type(a_coroutine)
+type_class = type(aClass)
 
 mailboxes = {}
 myNode = {
@@ -26,10 +35,9 @@ def spawn(f):
     async def receive():
         value = await q.get()
         return value
-
-    #if inspect.iscoroutinefunction(f):
-    uasyncio.create_task(f(receive))
-    """if inspect.isclass(f):
+    if type(f)==type_coroutine:
+        uasyncio.create_task(f(receive))
+    if type(f)==type_class:
         x = f()
 
         async def runner():
@@ -38,19 +46,15 @@ def spawn(f):
                 op = getattr(x, msg, None)
                 if callable(op):
                     op(*args)
-        asyncio.create_task(runner())"""
+        uasyncio.create_task(runner())
 
     return {"pid": pid, "node": myNode}
 
 async def send(proc, msg, *args):
-    print("send", type(proc))
-
     if type(proc) == str:
         mailboxes[proc].put_nowait((msg, args))
     if type(proc) == dict:
         if proc.get("node", {}).get("nodeID", "") == myNode["nodeID"]:
-            print("delivering", msg, args)
-            print("to", mailboxes[proc['pid']])
             mailboxes[proc['pid']].put_nowait((msg, args))
             return
 
@@ -68,11 +72,20 @@ async def Af(receive):
         (msg, args) = await receive()
         print("A got msg", msg, args)
 
+class Foo:
+    def hello(self, x):
+        print("Foo.hello got", x)
+class TickTock:
+    def tock(self, tm):
+        print("tock got", tm)
+
 async def go():
     A = spawn(Af)
     
-    #B = spawn(Foo)
+    B = spawn(Foo)
     await send(A, "hello", 5)
+    await send(B, "hello", 4)
+
     #await uasyncio.sleep(3)
 
     print("done")
