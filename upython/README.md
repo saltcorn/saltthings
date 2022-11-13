@@ -1,6 +1,6 @@
 # Installation
 
-## on PCs
+## on Desktop computers
 
 homebrew micropython ships with an old version (v2) of uasyncio even though the version of micropython is latest. Do not use brew.
 
@@ -12,7 +12,7 @@ Install micropython from apt (not snap)
 $ sudo apt install micropython
 ```
 
-Do not install uasyncio with upip. Instead, do this: https://forum.micropython.org/viewtopic.php?f=15&t=10146#p56429 i.e.
+Do not install uasyncio with upip. (I got this error: `ValueError: incompatible .mpy file`.) Instead, do this: https://forum.micropython.org/viewtopic.php?f=15&t=10146#p56429 i.e.
 
 ```
 $ git clone https://github.com/micropython/micropython.git
