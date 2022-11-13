@@ -12,7 +12,7 @@ Install micropython from apt (not snap)
 $ sudo apt install micropython
 ```
 
-Do this: https://forum.micropython.org/viewtopic.php?f=15&t=10146#p56429 i.e.
+Do not install uasyncio with upip. Instead, do this: https://forum.micropython.org/viewtopic.php?f=15&t=10146#p56429 i.e.
 
 ```
 $ git clone https://github.com/micropython/micropython.git
