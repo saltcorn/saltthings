@@ -4,6 +4,7 @@ import time
 from primitives import Queue
 import urequests
 import ujson
+from uWeb.uWeb_uasyncio import uWeb_uasyncio
 
 random.seed(time.ticks_ms())
 
