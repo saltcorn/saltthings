@@ -1,3 +1,6 @@
+# Copyright (c) 2019 尸廾工L工尸 乙
+# https://github.com/petabite/uWeb
+
 import ujson as json
 import gc
 import network

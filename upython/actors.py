@@ -4,7 +4,8 @@ import time
 from primitives import Queue
 import urequests
 import ujson
-from uWeb.uWeb_uasyncio import uWeb_uasyncio
+from uWeb.uWeb_uasyncio import uWeb_uasyncio as uWeb
+from uWeb.uWeb_uasyncio import loadJSON
 
 random.seed(time.ticks_ms())
 
@@ -29,6 +30,21 @@ myNode = {
     "nodeID": randStr(),
     "nodeLocators": {}
 }
+
+async def createNode(loop, options={}):
+    global myNode
+    
+    if options.get("createHttpServer"):
+        host = options['createHttpServer']['host']
+        port = options['createHttpServer']['port']
+        myNode['nodeLocators']['http'] = f"http://{host}:{port}"
+        server = uWeb("0.0.0.0", port)
+        def post(): #print JSON body from client
+            print('Payload: ', loadJSON(server.request_body))
+            await uasyncio.sleep(0)
+        server.routes(({
+            (uWeb.POST, "/"): post,
+        }))
 
 def spawn(f):
     pid =randStr()
@@ -73,10 +89,10 @@ def send(proc, msg, *args):
 
 def run(f, createNodeOptions={}):
     loop = uasyncio.get_event_loop()
-    """async def g():
+    async def g():
         await createNode(loop, createNodeOptions)
-        await f()"""
-    loop.create_task(f())
+        await f()
+    loop.create_task(g())
     loop.run_forever()
 
 async def Af(receive):

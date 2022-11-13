@@ -12,10 +12,7 @@ myNode = {
 
 """
 todo:
--http client and server
 -register process name
-
-
 """
 
 
