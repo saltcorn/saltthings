@@ -43,12 +43,14 @@ async def createNode(loop, options={}):
             print("POST handler")
             print('Payload string: ', server.request_body)
             print('Payload: ', loadJSON(server.request_body))
-            await uasyncio.sleep(0)
+
+            await server.sendJSON({'status':'okkk'})
         server.routes(({
             (uWeb.POST, "/"): post,
         }))
         server.log = True
-        loop.create_task(uasyncio.start_server(server.router, server.address, server.port)) 
+        server.start()
+        #loop.create_task(uasyncio.start_server(server.router, server.address, server.port)) 
         print("started server")
 
 def spawn(f):
@@ -128,7 +130,7 @@ async def go():
         "print",
         "tock")
     """
-    await uasyncio.sleep(2)
+    #await uasyncio.sleep(2)
     tickTock = spawn(TickTock)
     #await send(A, "hello", 5)
     #await send(A, "world")

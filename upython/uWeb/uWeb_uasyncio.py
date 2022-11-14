@@ -50,13 +50,13 @@ class uWeb_uasyncio:
         loop = uasyncio.get_event_loop()
         loop.create_task(uasyncio.start_server(self.router, self.address, self.port)) # Schedule server loop
         # TODO: uncomment on release print("uWeb server started! Connect to http://%s:%s/" % (network.WLAN(network.STA_IF).ifconfig()[0], self.port))
-        loop.run_forever()
+        #loop.run_forever()
 
     def router(self, reader, writer):
         self.reader = reader
         self.writer = writer
         try:
-            self.request = await reader.read()
+            self.request = await reader.read(4096)
             if not self.log:
                 print("Server logs are currently off.")
             if self.log:
