@@ -40,39 +40,15 @@ const createNode = (options = {}) => {
 };
 
 const sendHTTP = (httpLoc, pid, ...msg) => {
-
   fetch(httpLoc, {
     method: 'POST',
     body: JSON.stringify([pid, ...msg]),
     headers: { 'Content-Type': 'application/json' }
+  }).then(res=>{
+    console.log(res);
+  }).catch(e=>{
+    console.error(e)
   })
- /* const url = new URL(httpLoc);
-  var options = {
-    host: url.hostname,
-    path: url.pathname,
-    port: url.port,
-    method: "POST",
-  };
-
-  const req = http.request(options, res=>{
-    res.on('data', (chunk) => {
-      console.log(`BODY: ${chunk}`);
-    });
-    res.on('end', () => {
-      console.log('No more data in response.');      
-    });
-  });
-  req.shouldKeepAlive = false
-  req.on("error", (e) => {
-    console.error(e);
-  });
-  req.setHeader('Connection', 'close');
-  console.log("REQ WRITE");
-  req.write(JSON.stringify([pid, ...msg]));
-  console.log("REQ END");
-
-  req.end();
-  console.log("REQ DONE");*/
 };
 
 const send = ({ pid, node }, ...msg) => {
