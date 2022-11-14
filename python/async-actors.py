@@ -33,8 +33,7 @@ async def createNode(loop, options={}):
         app = web.Application(loop=loop)
         app.add_routes([web.post('/', handler)])
         srv = await loop.create_server(app.make_handler(), '0.0.0.0', port)
-        return srv
-        #web.run_app(app)
+        return srv # TODO remove?
 
 
 def spawn(f):

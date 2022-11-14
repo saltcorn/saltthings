@@ -45,6 +45,8 @@ async def createNode(loop, options={}):
         server.routes(({
             (uWeb.POST, "/"): post,
         }))
+        loop.create_task(uasyncio.start_server(server.router, server.address, server.port)) 
+      
 
 def spawn(f):
     pid =randStr()
