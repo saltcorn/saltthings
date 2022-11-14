@@ -80,10 +80,9 @@ def send(proc, msg, *args):
             return
         httpUrl = proc.get("node", {}).get(
             "nodeLocators", {}).get("http", False)
-        if httpUrl:
-            msgList = [proc, msg]
-            msgList.append(args)
-            post_data = ujson.dumps(msgList)
+        if httpUrl:       
+            post_data = ujson.dumps([proc, msg]+list(args))
+            print(post_data)
             urequests.post(httpUrl, headers = {'content-type': 'application/json'}, data = post_data)            
             return
 
