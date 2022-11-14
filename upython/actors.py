@@ -1,20 +1,35 @@
-import asyncio
-import uuid
-import inspect
-import aiohttp
-from aiohttp import web
+import uasyncio
+import random
+import time
+from primitives import Queue
+import urequests
+import ujson
+from uWeb.uWeb_uasyncio import uWeb_uasyncio as uWeb
+from uWeb.uWeb_uasyncio import loadJSON
+
+random.seed(time.ticks_ms())
+
+def randChar():
+    return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'[random.getrandbits(6)]
+
+def randStr(N=16):
+	return ''.join([randChar() for i in range(N)])
+
+async def a_coroutine():
+    pass
+
+class aClass:
+    pass
+
+
+type_coroutine = type(a_coroutine)
+type_class = type(aClass)
 
 mailboxes = {}
 myNode = {
-    "nodeID": str(uuid.uuid4()),
+    "nodeID": randStr(),
     "nodeLocators": {}
 }
-
-"""
-todo:
--register process name
-"""
-
 
 async def createNode(loop, options={}):
     global myNode
@@ -23,31 +38,28 @@ async def createNode(loop, options={}):
         host = options['createHttpServer']['host']
         port = options['createHttpServer']['port']
         myNode['nodeLocators']['http'] = f"http://{host}:{port}"
-        
-
-        async def handler(request):
-            pid, msg, *args = await request.json()
-            #print(pid,msg,args)
-            await send(pid,msg,*args)
-            return web.Response(text="OK")
-        app = web.Application(loop=loop)
-        app.add_routes([web.post('/', handler)])
-        srv = await loop.create_server(app.make_handler(), '0.0.0.0', port)
-        return srv # TODO remove?
-
+        server = uWeb("0.0.0.0", port)
+        async def post(): #print JSON body from client          
+            pid, msg, *args = loadJSON(server.request_body)
+            send(pid,msg,*args)
+            await server.sendJSON({'status':'ok'})
+        server.routes(({
+            (uWeb.POST, "/"): post,
+        }))
+        server.start(log=False)
+        #loop.create_task(uasyncio.start_server(server.router, server.address, server.port)) 
 
 def spawn(f):
-    pid = str(uuid.uuid4())
-    q = asyncio.Queue()
+    pid =randStr()
+    q = Queue()
     mailboxes[pid] = q
 
     async def receive():
         value = await q.get()
         return value
-
-    if inspect.iscoroutinefunction(f):
-        asyncio.create_task(f(receive))
-    if inspect.isclass(f):
+    if type(f)==type_coroutine:
+        uasyncio.create_task(f(receive))
+    if type(f)==type_class:
         x = f()
 
         async def runner():
@@ -56,12 +68,11 @@ def spawn(f):
                 op = getattr(x, msg, None)
                 if callable(op):
                     op(*args)
-        asyncio.create_task(runner())
+        uasyncio.create_task(runner())
 
     return {"pid": pid, "node": myNode}
 
-
-async def send(proc, msg, *args):
+def send(proc, msg, *args):
     if type(proc) == str:
         mailboxes[proc].put_nowait((msg, args))
     if type(proc) == dict:
@@ -70,29 +81,27 @@ async def send(proc, msg, *args):
             return
         httpUrl = proc.get("node", {}).get(
             "nodeLocators", {}).get("http", False)
-        if httpUrl:
-            async with aiohttp.ClientSession() as session:
-                await session.post(httpUrl, json=[proc, msg, *args])
-
+        if httpUrl:       
+            post_data = ujson.dumps([proc, msg]+list(args))
+            print(post_data)
+            urequests.post(httpUrl, headers = {'content-type': 'application/json'}, data = post_data)            
             return
 
         print("unknown destination")
 
-
 def run(f, createNodeOptions={}):
-    loop = asyncio.get_event_loop()
+    loop = uasyncio.get_event_loop()
     async def g():
         await createNode(loop, createNodeOptions)
         await f()
     loop.create_task(g())
     loop.run_forever()
 
-
 async def Af(receive):
     while True:
+        print("Af waiting")
         (msg, args) = await receive()
         print("A got msg", msg, args)
-
 
 class Foo:
     def hello(self, x):
@@ -101,16 +110,29 @@ class TickTock:
     def tock(self, tm):
         print("tock got", tm)
 
-
 async def go():
-    #A = spawn(Af)
-    #B = spawn(Foo)
+    """
+    A = spawn(Af)
+    
+    B = spawn(Foo)
+    send(A, "hello", 5)
+    send(B, "hello", 4)
+    send({
+            "processName": "console",
+            "node": {
+                "nodeID": "",
+                "nodeLocators": {"http": "http://localhost:3155"}}
+        },
+        "print",
+        "tock")
+    """
+    #await uasyncio.sleep(2)
     tickTock = spawn(TickTock)
     #await send(A, "hello", 5)
     #await send(A, "world")
     #await send(B, "hello", 4)
     #await send(B, "hello", 8)
-    await send(
+    send(
         {
             "processName": "clock",
             "node": {
@@ -122,6 +144,7 @@ async def go():
         "tock",
         )
 
+    print("done")
 
 run(go, {
     "createHttpServer": {"port": 3001, "host": "0.0.0.0"}

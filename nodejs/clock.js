@@ -5,7 +5,7 @@ createNode({ createHttpServer: { port: 3135, host: "localhost" } });
 spawn({
   processName: "clock",
   get_time(p, msg) {
-    console.log("get_time");
+    console.log("get_time",p, msg);
     send(p, msg, new Date());
   },
 });

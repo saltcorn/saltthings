@@ -1,6 +1,7 @@
 let nextPid = 0;
 const mailboxes = {};
 const http = require("http");
+const fetch = require('node-fetch');
 
 //testing: curl -X POST http://localhost:3125 -H 'Content-Type: application/json'  -d '[0, "hello", "world from CURL"]'
 const myNode = { nodeID: null, nodeLocators: {}, registeredProcesses: {} };
@@ -39,20 +40,15 @@ const createNode = (options = {}) => {
 };
 
 const sendHTTP = (httpLoc, pid, ...msg) => {
-  const url = new URL(httpLoc);
-  var options = {
-    host: url.hostname,
-    path: url.pathname,
-    port: url.port,
-    method: "POST",
-  };
-
-  var req = http.request(options);
-  req.on("error", (e) => {
-    console.error(e);
-  });
-  req.write(JSON.stringify([pid, ...msg]));
-  req.end();
+  fetch(httpLoc, {
+    method: 'POST',
+    body: JSON.stringify([pid, ...msg]),
+    headers: { 'Content-Type': 'application/json' }
+  }).then(res=>{
+    //console.log(res);
+  }).catch(e=>{
+    //console.error(e)
+  })
 };
 
 const send = ({ pid, node }, ...msg) => {
