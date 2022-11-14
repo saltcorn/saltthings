@@ -1,6 +1,7 @@
 let nextPid = 0;
 const mailboxes = {};
 const http = require("http");
+const fetch = require('node-fetch');
 
 //testing: curl -X POST http://localhost:3125 -H 'Content-Type: application/json'  -d '[0, "hello", "world from CURL"]'
 const myNode = { nodeID: null, nodeLocators: {}, registeredProcesses: {} };
@@ -39,7 +40,13 @@ const createNode = (options = {}) => {
 };
 
 const sendHTTP = (httpLoc, pid, ...msg) => {
-  const url = new URL(httpLoc);
+
+  fetch(httpLoc, {
+    method: 'POST',
+    body: JSON.stringify([pid, ...msg]),
+    headers: { 'Content-Type': 'application/json' }
+  })
+ /* const url = new URL(httpLoc);
   var options = {
     host: url.hostname,
     path: url.pathname,
@@ -47,12 +54,25 @@ const sendHTTP = (httpLoc, pid, ...msg) => {
     method: "POST",
   };
 
-  var req = http.request(options);
+  const req = http.request(options, res=>{
+    res.on('data', (chunk) => {
+      console.log(`BODY: ${chunk}`);
+    });
+    res.on('end', () => {
+      console.log('No more data in response.');      
+    });
+  });
+  req.shouldKeepAlive = false
   req.on("error", (e) => {
     console.error(e);
   });
+  req.setHeader('Connection', 'close');
+  console.log("REQ WRITE");
   req.write(JSON.stringify([pid, ...msg]));
+  console.log("REQ END");
+
   req.end();
+  console.log("REQ DONE");*/
 };
 
 const send = ({ pid, node }, ...msg) => {
