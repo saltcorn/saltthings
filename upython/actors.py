@@ -39,19 +39,15 @@ async def createNode(loop, options={}):
         port = options['createHttpServer']['port']
         myNode['nodeLocators']['http'] = f"http://{host}:{port}"
         server = uWeb("0.0.0.0", port)
-        def post(): #print JSON body from client
-            print("POST handler")
-            print('Payload string: ', server.request_body)
-            print('Payload: ', loadJSON(server.request_body))
-
-            await server.sendJSON({'status':'okkk'})
+        async def post(): #print JSON body from client          
+            pid, msg, *args = loadJSON(server.request_body)
+            send(pid,msg,*args)
+            await server.sendJSON({'status':'ok'})
         server.routes(({
             (uWeb.POST, "/"): post,
         }))
-        server.log = True
-        server.start()
+        server.start(log=False)
         #loop.create_task(uasyncio.start_server(server.router, server.address, server.port)) 
-        print("started server")
 
 def spawn(f):
     pid =randStr()

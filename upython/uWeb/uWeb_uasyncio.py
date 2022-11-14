@@ -58,7 +58,7 @@ class uWeb_uasyncio:
         try:
             self.request = await reader.read(4096)
             if not self.log:
-                print("Server logs are currently off.")
+                pass
             if self.log:
                 print('INCOMING REQUEST FROM %s' % (writer.get_extra_info('peername')))
                 print('----------------')
@@ -81,59 +81,13 @@ class uWeb_uasyncio:
                         await self.render('404.html', layout=None, status=self.NOT_FOUND)
                 else:
                     await self.render('505.html', layout=None, status=self.ERROR)
-                await writer.aclose()
+                #await writer.drain()
+                await writer.close()
                 if self.log: 
                     print('closed connection')
                     print()
         except Exception as e:
             sys.print_exception(e)
-
-    def render(self, html_file, layout='layout.html', variables=False, status=OK):
-        # send HTML file to client
-        try:
-            if layout:
-                # layout rendering
-                file = layout
-                with open(layout, 'r') as f:
-                    gc.collect()
-                    await self.sendStatus(status)
-                    await self.sendHeaders({'Content-Type': 'text/html'})
-                    await self.send(b'\n')
-                    for line in f:
-                        if '{{yield}}' in line:
-                            splitted = line.split('{{yield}}')
-                            await self.send(splitted[0].encode())
-                            with open(html_file, 'r') as f:
-                                for line in f:
-                                    if variables:
-                                        for var_name, value in variables.items():
-                                            line = line.replace("{{%s}}" % var_name, str(value))
-                                    await self.send(line.encode())
-                            await self.send(splitted[1].encode())
-                        else: 
-                            await self.send(line.encode())
-            else:
-                # no layout rendering
-                gc.collect()
-                await self.sendStatus(status)
-                await self.sendHeaders({'Content-Type': 'text/html'})
-                await self.send(b'\n')
-                file = html_file
-                with open(html_file, 'r') as f:
-                    for line in f:
-                        if variables:
-                            for var_name, value in variables.items():
-                                line = line.replace("{{%s}}" % var_name, str(value))
-                        await self.send(line.encode())
-            await self.send(b'\n\n')
-        except Exception as e:
-            if e.args[0] == 2:
-                #catch file not found
-                print('No such file: %s' % file)
-                await self.render('500.html', layout=None, status=self.ERROR)
-            else:
-                sys.print_exception(e)
-        # uasyncio.sleep(0)
 
     def sendJSON(self, dict_to_send={}):
         # send JSON data to client

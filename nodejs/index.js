@@ -45,9 +45,9 @@ const sendHTTP = (httpLoc, pid, ...msg) => {
     body: JSON.stringify([pid, ...msg]),
     headers: { 'Content-Type': 'application/json' }
   }).then(res=>{
-    console.log(res);
+    //console.log(res);
   }).catch(e=>{
-    console.error(e)
+    //console.error(e)
   })
 };
 
