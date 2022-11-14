@@ -123,8 +123,24 @@ async def go():
         },
         "print",
         "tock")
-
-    #await uasyncio.sleep(3)
+    """
+    await uasyncio.sleep(2)
+    tickTock = spawn(TickTock)
+    #await send(A, "hello", 5)
+    #await send(A, "world")
+    #await send(B, "hello", 4)
+    #await send(B, "hello", 8)
+    send(
+        {
+            "processName": "clock",
+            "node": {
+                "nodeID": "",
+                "nodeLocators": {"http": "http://localhost:3135"}}
+        },
+        "get_time",
+        tickTock,
+        "tock",
+        )
 
     print("done")
 
