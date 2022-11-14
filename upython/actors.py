@@ -40,13 +40,16 @@ async def createNode(loop, options={}):
         myNode['nodeLocators']['http'] = f"http://{host}:{port}"
         server = uWeb("0.0.0.0", port)
         def post(): #print JSON body from client
+            print("POST handler")
+            print('Payload string: ', server.request_body)
             print('Payload: ', loadJSON(server.request_body))
             await uasyncio.sleep(0)
         server.routes(({
             (uWeb.POST, "/"): post,
         }))
+        server.log = True
         loop.create_task(uasyncio.start_server(server.router, server.address, server.port)) 
-      
+        print("started server")
 
 def spawn(f):
     pid =randStr()
@@ -110,6 +113,7 @@ class TickTock:
         print("tock got", tm)
 
 async def go():
+    """
     A = spawn(Af)
     
     B = spawn(Foo)
