@@ -9,6 +9,17 @@ import (
 
 type pid = int
 
+type nodeSpec struct {
+	nodeID int
+	nodeLocators map[string]string
+}
+
+
+type pSpec struct {
+	pid pid
+	node nodeSpec
+}
+
 type msg struct {
 	pid pid
 	name string	
@@ -21,7 +32,7 @@ func (r *msg) UnmarshalJSON(p []byte) error {
 	if err := json.Unmarshal(p, &tmp); err != nil {
 			return err
 	}
-	r.pid = int(tmp[0].(float64))
+	r.pid = tmp[0].(pid)
 	r.name = tmp[1].(string)
 	r.args = tmp[2].([]interface{})
 	return nil
@@ -45,6 +56,12 @@ func request_handler(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 	}
 	send(m.pid,m.name, m.args...)
+}
+
+func createNode(f func()) {
+	go f()
+	http.HandleFunc("/", request_handler)
+	http.ListenAndServe(":8090", nil)
 }
 
 func spawn(f func(receiver)) pid {
@@ -83,10 +100,10 @@ func af(receive receiver) {
 }
 
 func main() {
-	spid := spawn(af)
-	fmt.Println("got PID", spid)
-	send(spid, "foo")
-	send(spid, "hello", 42)
-	http.HandleFunc("/", request_handler)
-	http.ListenAndServe(":8090", nil)
+	createNode(func() {
+		spid := spawn(af)
+		fmt.Println("got PID", spid)
+		send(spid, "foo")
+		send(spid, "hello", 42)
+	})
 }
