@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -14,6 +15,18 @@ type msg struct {
 	args []interface{}
 }
 
+//https://jhall.io/posts/go-json-tricks-array-as-structs/
+func (r *msg) UnmarshalJSON(p []byte) error {
+	var tmp []interface{}
+	if err := json.Unmarshal(p, &tmp); err != nil {
+			return err
+	}
+	r.pid = int(tmp[0].(float64))
+	r.name = tmp[1].(string)
+	r.args = tmp[2].([]interface{})
+	return nil
+}
+
 type receiver = func() msg
 
 var pidCounter int =1
@@ -21,12 +34,17 @@ var pidCounter int =1
 var ps= make(map[pid]chan msg)
 
 func request_handler(w http.ResponseWriter, r *http.Request) {
-	var req msg
-	err := json.NewDecoder(r.Body).Decode(&req)
+	var m msg
+
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
+		panic(err)
+	}
+
+	if err := json.Unmarshal(b, &m); err != nil {
 			panic(err)
 	}
-	send(req.pid,req.name, req.args...)
+	send(m.pid,m.name, m.args...)
 }
 
 func spawn(f func(receiver)) pid {
