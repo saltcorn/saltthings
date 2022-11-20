@@ -9,17 +9,26 @@ type msg struct {
 	name string	
 }
 
+type procStore struct {
+	pid pid
+	ch chan msg
+}
 type receiver = func() msg
 
 var pidCounter int =1
+var procs []procStore
 
 func spawn(f func(receiver)) pid {
 
 	pid:=pidCounter
 	pidCounter++
-	
+
+	ch := make(chan msg)
+
+	procs = append(procs, procStore{pid: pid, ch: ch})
+
 	r := func () msg {
-		return msg{pid:1, name:"foo"}
+		return <- ch
 	}
 
 	go f(r)
@@ -40,4 +49,5 @@ func af(receive receiver) {
 func main() {
 	spid := spawn(af)
 	fmt.Println("got PID", spid)
+	select {} // block forever
 }
