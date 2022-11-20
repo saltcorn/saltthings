@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
 )
 
 type pid = int
@@ -40,7 +39,7 @@ func (r *msg) UnmarshalJSON(p []byte) error {
 	return nil
 }
 
-type receiver = func() msg
+type receiver = func() (string,  []interface{})
 
 var pidCounter int = 1
 
@@ -69,17 +68,6 @@ func createNode(f func()) {
 	http.ListenAndServe(":8090", nil)
 }
 
-func spawnM(m map[string]interface{}) pid {
-	fmt.Println("map ty", reflect.TypeOf(m))
-	return spawn(func(receive receiver) {
-		for true {
-			ms := receive()
-			f := m[ms.name].(func(...interface{}))
-			fmt.Println("spawnm msg got type", reflect.TypeOf(f))
-			f(ms.args...)
-		}
-	})
-}
 
 func spawn(f func(receiver)) pid {
 
@@ -90,8 +78,9 @@ func spawn(f func(receiver)) pid {
 
 	ps[pid] = ch
 
-	r := func() msg {
-		return <-ch
+	r := func() (string, []interface{}) {
+		m:=<-ch
+		return m.name, m.args
 	}
 
 	go f(r)
@@ -106,35 +95,28 @@ func send(p pid, m string, as ...interface{}) {
 
 func af(receive receiver) {
 	for true {
-		m := receive()
-		switch m.name {
+		name, args := receive()
+		switch name {
 		case "foo":
 			fmt.Println("got foo")
 		case "hello":
-			fmt.Println("got hello", m.args)
+			fmt.Println("got hello", args)
 		}
 	}
 }
 
-func prType(x interface{}) {
-
-	fmt.Println("got type", reflect.TypeOf(x))
-
-}
 
 func main() {
 
-	prType(func(x int) int { return x + 1 })
-
 	createNode(func() {
 
-		mpid:=spawnM(dispatch{
+		/*mpid:=spawnM(dispatch{
 			"foo": func(x int) {
 				fmt.Println("FOO GOT", x)
 				return
 			},
 		})
-		send(mpid, "foo", 51)
+		send(mpid, "foo", 51)*/
 
 		spid := spawn(af)
 		fmt.Println("x type", spid)
