@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
 
 type pid = int
 
@@ -16,6 +20,14 @@ var pidCounter int =1
 
 var ps= make(map[pid]chan msg)
 
+func request_handler(w http.ResponseWriter, r *http.Request) {
+	var req msg
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+			panic(err)
+	}
+	send(req.pid,req.name, req.args...)
+}
 
 func spawn(f func(receiver)) pid {
 
@@ -41,19 +53,22 @@ func send(p pid, m string, as ...interface{}) {
 }
 
 func af(receive receiver) {
-	m := receive()
-	switch m.name {
-	case "foo":
-			fmt.Println("got foo")
-	case "hello":
-			fmt.Println("got hello", m.args)
+	for true {
+		m := receive()
+		switch m.name {
+		case "foo":
+				fmt.Println("got foo")
+		case "hello":
+				fmt.Println("got hello", m.args)
+		}
 	}
 }
 
 func main() {
 	spid := spawn(af)
 	fmt.Println("got PID", spid)
-	//send(spid, "foo")
+	send(spid, "foo")
 	send(spid, "hello", 42)
-	select {} // block forever
+	http.HandleFunc("/", request_handler)
+	http.ListenAndServe(":8090", nil)
 }
