@@ -24,7 +24,7 @@ type pSpec struct {
 }
 
 type msg struct {
-	pid  pid
+	proc  pSpec
 	name string
 	args []interface{}
 }
@@ -46,7 +46,7 @@ func (r *msg) UnmarshalJSON(p []byte) error {
 	if err := json.Unmarshal(p, &tmp); err != nil {
 		return err
 	}
-	r.pid = tmp[0].(pid)
+	r.proc = tmp[0].(pSpec)
 	r.name = tmp[1].(string)
 	r.args = tmp[2:]
 	return nil
@@ -69,7 +69,7 @@ func request_handler(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(b, &m); err != nil {
 		panic(err)
 	}
-	send(m.pid, m.name, m.args...)
+	send(m.proc, m.name, m.args...)
 }
 
 func createNode(f func()) {
@@ -81,7 +81,7 @@ func createNode(f func()) {
 }
 
 
-func spawn(f func(receiver)) pid {
+func spawn(f func(receiver)) pSpec {
 
 	pid := RandStringBytes(16)
 
@@ -96,12 +96,12 @@ func spawn(f func(receiver)) pid {
 
 	go f(r)
 
-	return pid
+	return pSpec{pid: pid, node: myNode}
 }
 
-func send(p pid, m string, as ...interface{}) {
-	ch := ps[p]
-	ch <- msg{pid: p, name: m, args: as}
+func send(p pSpec, m string, as ...interface{}) {
+	ch := ps[p.pid]
+	ch <- msg{proc: p, name: m, args: as}
 }
 
 func af(receive receiver) {

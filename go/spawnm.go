@@ -6,7 +6,7 @@ import (
 )
 
 
-func spawnM(m map[string]interface{}) pid {
+func spawnM(m map[string]interface{}) pSpec {
 	fmt.Println("map ty", reflect.TypeOf(m))
 	return spawn(func(receive receiver) {
 		for true {
