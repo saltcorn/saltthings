@@ -106,7 +106,7 @@ func spawn(f func(receiver, pSpec)) pSpec {
 
 func send(p pSpec, m string, as ...interface{}) {
 	if p.node.nodeID != myNode.nodeID {
-		msgArray := [](interface{}){p, m} //todo: spread
+		msgArray := [](interface{}){p, m}
 		msgArray = append(msgArray, as...)
 		postBody, _ := json.Marshal(msgArray)
 		responseBody := bytes.NewBuffer(postBody)
