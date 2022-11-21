@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
-type pid = int
+type pid = string
 
 type dispatch = map[string]interface{}
 
@@ -27,6 +29,17 @@ type msg struct {
 	args []interface{}
 }
 
+//https://stackoverflow.com/a/31832326/19839414
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+
+func RandStringBytes(n int) string {
+    b := make([]byte, n)
+    for i := range b {
+        b[i] = letterBytes[rand.Intn(len(letterBytes))]
+    }
+    return string(b)
+}
+
 // https://jhall.io/posts/go-json-tricks-array-as-structs/
 func (r *msg) UnmarshalJSON(p []byte) error {
 	var tmp []interface{}
@@ -40,8 +53,6 @@ func (r *msg) UnmarshalJSON(p []byte) error {
 }
 
 type receiver = func() (string,  []interface{})
-
-var pidCounter int = 1
 
 var ps = make(map[pid]chan msg)
 
@@ -62,6 +73,7 @@ func request_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createNode(f func()) {
+	rand.Seed(time.Now().UnixNano())
 	myNode.nodeLocators["http"] = "http://0.0.0.0:8090"
 	go f()
 	http.HandleFunc("/", request_handler)
@@ -71,8 +83,7 @@ func createNode(f func()) {
 
 func spawn(f func(receiver)) pid {
 
-	pid := pidCounter
-	pidCounter++
+	pid := RandStringBytes(16)
 
 	ch := make(chan msg)
 
