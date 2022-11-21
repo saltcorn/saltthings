@@ -14,7 +14,7 @@ type pid = string
 type dispatch = map[string]interface{}
 
 type nodeSpec struct {
-	nodeID       int
+	nodeID       string
 	nodeLocators map[string]string
 }
 
@@ -56,7 +56,7 @@ type receiver = func() (string,  []interface{})
 
 var ps = make(map[pid]chan msg)
 
-var myNode = nodeSpec{nodeID: 4, nodeLocators: make(map[string]string)}
+var myNode = nodeSpec{nodeID: "", nodeLocators: make(map[string]string)}
 
 func request_handler(w http.ResponseWriter, r *http.Request) {
 	var m msg
@@ -74,7 +74,10 @@ func request_handler(w http.ResponseWriter, r *http.Request) {
 
 func createNode(f func()) {
 	rand.Seed(time.Now().UnixNano())
+
+	myNode.nodeID = RandStringBytes(16)
 	myNode.nodeLocators["http"] = "http://0.0.0.0:8090"
+	
 	go f()
 	http.HandleFunc("/", request_handler)
 	http.ListenAndServe(":8090", nil)
