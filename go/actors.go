@@ -84,7 +84,7 @@ func createNode(f func()) {
 }
 
 
-func spawn(f func(receiver)) pSpec {
+func spawn(f func(receiver, pSpec)) pSpec {
 
 	pid := RandStringBytes(16)
 
@@ -92,14 +92,16 @@ func spawn(f func(receiver)) pSpec {
 
 	ps[pid] = ch
 
+	p := pSpec{pid: pid, node: myNode}
+
 	r := func() (string, []interface{}) {
 		m:=<-ch
 		return m.name, m.args
 	}
 
-	go f(r)
+	go f(r,p)
 
-	return pSpec{pid: pid, node: myNode}
+	return p
 }
 
 func send(p pSpec, m string, as ...interface{}) {
@@ -107,7 +109,7 @@ func send(p pSpec, m string, as ...interface{}) {
 	ch <- msg{proc: p, name: m, args: as}
 }
 
-func af(receive receiver) {
+func af(receive receiver, self pSpec) {
 	for true {
 		name, args := receive()
 		switch name {
@@ -123,14 +125,6 @@ func af(receive receiver) {
 func main() {
 
 	createNode(func() {
-
-		/*mpid:=spawnM(dispatch{
-			"foo": func(x int) {
-				fmt.Println("FOO GOT", x)
-				return
-			},
-		})
-		send(mpid, "foo", 51)*/
 
 		spid := spawn(af)
 		fmt.Println("x type", spid)
