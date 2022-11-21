@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,20 +25,20 @@ type pSpec struct {
 }
 
 type msg struct {
-	proc  pSpec
+	proc pSpec
 	name string
 	args []interface{}
 }
 
-//https://stackoverflow.com/a/31832326/19839414
+// https://stackoverflow.com/a/31832326/19839414
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
 
 func RandStringBytes(n int) string {
-    b := make([]byte, n)
-    for i := range b {
-        b[i] = letterBytes[rand.Intn(len(letterBytes))]
-    }
-    return string(b)
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
 
 // https://jhall.io/posts/go-json-tricks-array-as-structs/
@@ -52,7 +53,7 @@ func (r *msg) UnmarshalJSON(p []byte) error {
 	return nil
 }
 
-type receiver = func() (string,  []interface{})
+type receiver = func() (string, []interface{})
 
 var ps = make(map[pid]chan msg)
 
@@ -77,12 +78,11 @@ func createNode(f func()) {
 
 	myNode.nodeID = RandStringBytes(16)
 	myNode.nodeLocators["http"] = "http://0.0.0.0:8090"
-	
+
 	go f()
 	http.HandleFunc("/", request_handler)
 	http.ListenAndServe(":8090", nil)
 }
-
 
 func spawn(f func(receiver, pSpec)) pSpec {
 
@@ -95,18 +95,33 @@ func spawn(f func(receiver, pSpec)) pSpec {
 	p := pSpec{pid: pid, node: myNode}
 
 	r := func() (string, []interface{}) {
-		m:=<-ch
+		m := <-ch
 		return m.name, m.args
 	}
 
-	go f(r,p)
+	go f(r, p)
 
 	return p
 }
 
 func send(p pSpec, m string, as ...interface{}) {
-	ch := ps[p.pid]
-	ch <- msg{proc: p, name: m, args: as}
+	if p.node.nodeID != myNode.nodeID {
+		msgArray := [](interface{}){p, m} //todo: spread
+		msgArray = append(msgArray, as...)
+		postBody, _ := json.Marshal(msgArray)
+		responseBody := bytes.NewBuffer(postBody)
+		resp, err := http.Post(
+			p.node.nodeLocators["http"],
+			"application/json",
+			responseBody)
+		if err != nil {
+			panic(err)
+		}
+		resp.Body.Close()
+	} else {
+		ch := ps[p.pid]
+		ch <- msg{proc: p, name: m, args: as}
+	}
 }
 
 func af(receive receiver, self pSpec) {
@@ -120,7 +135,6 @@ func af(receive receiver, self pSpec) {
 		}
 	}
 }
-
 
 func main() {
 
